@@ -1,0 +1,50 @@
+# Archivos y directorios de Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+
+# Entornos virtuales
+venv/
+.env/
+.venv/
+env/
+
+# Configuración de dependencias
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Archivos de configuración de editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos de logs y cachés
+*.log
+logs/
+
+# Archivos de compilación y distribución
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# Archivos de Docker
+*.pid
+*.tar
+docker-compose.override.yml
+
+# Configuración y credenciales
+# *.env
+# .env.local
+# .env.development
+# .env.production
+# .env.test
+# secrets.json
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Marshmallow Schemas (si usas caching)
+.mypy_cache/

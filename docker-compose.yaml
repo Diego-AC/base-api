@@ -1,0 +1,29 @@
+services:
+  postgres:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=pgpassword
+    networks:
+      - db
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    volumes:
+      - "./api:/api"
+    ports:
+      - 5050:5050
+    environment:
+      - WAIT_DB=1
+    networks:
+      - db
+      - apps
+networks:
+  db:
+    name: db-network
+  apps:
+    name: apps-network
