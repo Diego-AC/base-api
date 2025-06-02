@@ -1,3 +1,4 @@
+```
 src/
 ├── core/                      # Funciones y utilidades comunes
 │   ├── errorhandlers.py      
@@ -22,3 +23,4 @@ src/
 ├── extensions.py              # Extensiones de Flask (por ejemplo, SQLAlchemy, Marshmallow)
 ├── routes.py                  # Definición de las rutas de la aplicación
 └── setup.py                   # Script de configuración del proyecto
+```
