@@ -2,8 +2,8 @@ import sys
 import traceback
 from werkzeug.exceptions import HTTPException
 from marshmallow import ValidationError
-from src.core.responses import APIResponse
-from src.core.logger import logger
+from ..core.responses import APIResponse
+from ..core.logger import logger
 
 class ApiError:
 	@staticmethod

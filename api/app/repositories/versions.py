@@ -1,6 +1,6 @@
 from .base.mixins import BaseRepository
-from src.models import Version
-from src.extensions import db
+from ..models import Version
+from ..extensions import db
 
 class VersionRepository(BaseRepository):
 	def __init__(self):

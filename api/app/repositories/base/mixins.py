@@ -4,7 +4,7 @@ from sqlalchemy.orm import Query
 from collections import namedtuple
 from typing import Type, Optional
 
-from src.extensions import db
+from ...extensions import db
 
 OrderBy = namedtuple("OrderBy", ["key", "asc"])
 Paginate = namedtuple("Paginate", ["page", "per_page"])

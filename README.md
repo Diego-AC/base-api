@@ -1,5 +1,5 @@
 ```
-src/
+app/
 ├── core/                      # Funciones y utilidades comunes
 │   ├── errorhandlers.py      
 │   ├── logger.py              

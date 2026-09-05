@@ -1,7 +1,7 @@
 from marshmallow import fields, Schema
 from .base.custom_schema import BaseAutoSchema
-from src.extensions import ma
-from src.models.versions import Version
+from ..extensions import ma
+from ..models.versions import Version
 
 
 class VersionSerializer(BaseAutoSchema):
@@ -14,4 +14,4 @@ class VersionSerializer(BaseAutoSchema):
 
 class PayloadVersionSchema(Schema):
     description = fields.Str(required=True)
-    status = fields.Int(nullable=False)
+    status = fields.Int(nullable=False, allow_none=True)

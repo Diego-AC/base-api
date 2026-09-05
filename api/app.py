@@ -1,4 +1,4 @@
-from src import runserver
+from app import runserver
 
 
 app = runserver()

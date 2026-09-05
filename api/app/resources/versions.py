@@ -1,10 +1,10 @@
-from src.schemas.versions import VersionSerializer, PayloadVersionSchema
-from werkzeug.exceptions import NotFound
-from src.resources.base.custom_resource import BaseResource
-from src.core.authentication import login_required
-from src.repositories.versions import VersionRepository
-from src.core.responses import APIResponse
-from src.core.logger import logger
+from ..schemas.versions import VersionSerializer, PayloadVersionSchema
+
+from .base.custom_resource import BaseResource
+from ..core.authentication import login_required
+from ..repositories.versions import VersionRepository
+from ..core.responses import APIResponse
+from ..core.logger import logger
 from flask import request
 
 

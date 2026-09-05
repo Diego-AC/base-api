@@ -1,5 +1,5 @@
 from marshmallow import fields
-from src.extensions import ma, db
+from ...extensions import ma, db
 from datetime import datetime
 
 class BaseAutoSchema(ma.SQLAlchemyAutoSchema):
