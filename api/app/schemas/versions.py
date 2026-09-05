@@ -14,4 +14,4 @@ class VersionSerializer(BaseAutoSchema):
 
 class PayloadVersionSchema(Schema):
     description = fields.Str(required=True)
-    status = fields.Int(nullable=False, allow_none=True)
+    active = fields.Int(nullable=False, allow_none=True)

@@ -12,7 +12,7 @@ class VersionRepository(BaseRepository):
 	def create(self, dataJson):
 		entity = self.model(
 			description=dataJson.get("description"),
-			status=dataJson.get("status", 0),
+			active=dataJson.get("active", 0),
 		)
 		entity.save()
 		return entity.id

@@ -17,8 +17,7 @@ class TransactionalMixin:
     
     def delete(self):
         # Logic delete
-        self.status = 0
-        db.session.add(self)
+        self.active = 0
         db.session.commit()
         return self
 

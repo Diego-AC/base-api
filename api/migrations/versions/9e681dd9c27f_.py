@@ -21,7 +21,7 @@ def upgrade():
     op.create_table('versions',
         sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
         sa.Column('description', sa.String(), nullable=False),
-        sa.Column('status', sa.SmallInteger(), nullable=False),
+        sa.Column('active', sa.SmallInteger(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint('id')
