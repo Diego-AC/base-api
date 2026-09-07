@@ -48,3 +48,10 @@ docker-compose.override.yml
 
 # Marshmallow Schemas (si usas caching)
 .mypy_cache/
+
+# Local AI resources (per-developer, never commit content).
+# Ignore all files inside, but keep the directory itself (and its .gitkeep) tracked.
+.ai-resources/local/*
+!.ai-resources/local/.gitkeep
+!.ai-resources/local/.keep
+!.ai-resources/local/README.md
