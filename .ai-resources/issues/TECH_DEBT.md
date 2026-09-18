@@ -34,9 +34,7 @@ New items must be added at the bottom of their severity block.
   · **Status**: pending. Out of scope for the docs/AI iteration.
 
 - **TD-03 — `FLASK_DEBUG=1` hardcoded in Dockerfile**
-  · `api/Dockerfile:5`
-  · Exposes the Werkzeug interactive debugger if the container ever runs without an override. A leaked prod container becomes RCE-as-the-app-user.
-  · Read `FLASK_DEBUG` from env with no default, or default to `0`. Document that the prod compose overrides it. Add a CI check or startup assertion that refuses to boot if `FLASK_DEBUG=1` in a non-dev profile.
+  · Moved to Resolved. No follow-up on the production side; optional defence-in-depth assertion belongs in a new TD if/when desired.
 
 ## High
 
@@ -67,21 +65,18 @@ New items must be added at the bottom of their severity block.
   · Bump to `postgres:16-alpine` (or current LTS). Re-test migrations.
 
 - **TD-09 — Migrations are not applied on container start**
-  · `api/entrypoint.sh`
-  · First-time setup requires `docker compose exec api flask db upgrade`. Easy to forget on a fresh clone.
-  · Add an opt-in `RUN_MIGRATIONS=1` step in `entrypoint.sh` that runs `flask db upgrade` before `flask run`. Document the env var.
+  · Moved to Resolved for production. The dev-entrypoint gap stays open as a new item below (TD-09b — see "TD-09b" entry).
 
 - **TD-10 — `psycopg2-binary` in requirements**
   · `api/requirements.txt:19`
   · Fine for dev. Not recommended for production builds (binary wheel, no system-lib isolation).
   · Document in README; optionally split `requirements-dev.txt` / `requirements-prod.txt`.
+  · **Note**: now that `Dockerfile.production` exists, the cleanest move is to switch prod to `psycopg2` (source build, system libs) and keep `psycopg2-binary` only for dev. The README update would document the split.
 
 ## Medium
 
 - **TD-11 — README is a folder tree**
-  · `README.md`
-  · A new dev cannot tell the stack, the pattern or how to boot the project from the README alone.
-  · Rewritten in this iteration.
+  · Moved to Resolved.
 
 - **TD-12 — No `.env.example`**
   · repo root
@@ -92,6 +87,7 @@ New items must be added at the bottom of their severity block.
   · `.gitignore:39-44`
   · Trivially bypassed: someone `git add .env` and it goes in.
   · Uncomment. Add `!.env.example` so the example is still tracked.
+  · **Observed during prod setup**: creating `api/.env` for the prod smoke test left it as an untracked file that `git status` happily surfaces. Any teammate running `git add .` would commit it. Fix should be uncommented together with TD-12 so the template `.env.example` survives.
 
 - **TD-14 — No linter/formatter config**
   · repo
@@ -104,9 +100,7 @@ New items must be added at the bottom of their severity block.
   · Add `tests/` with `pytest`; cover the error handler (TD-01) as first case.
 
 - **TD-16 — No healthcheck or restart policy in compose**
-  · `docker-compose.yaml`
-  · Containers can stay zombie on crash.
-  · Add `healthcheck` to `postgres` and `api`, `restart: unless-stopped` for dev convenience.
+  · Moved to Resolved for production. Dev-compose gap stays open as TD-16b below.
 
 - **TD-17 — CORS not configured**
   · `api/app/setup.py`
@@ -128,6 +122,16 @@ New items must be added at the bottom of their severity block.
   · Never referenced. Confuses readers ("when do I use this?").
   · Document in a comment or remove until needed.
 
+- **TD-09b — Dev entrypoint does not run migrations (gap from TD-09)**
+  · `api/entrypoint.sh`
+  · TD-09 was resolved for production; the dev entrypoint still only waits for the DB to accept connections. A fresh dev clone still requires `docker compose exec api flask db upgrade` after `docker compose up`.
+  · Add an opt-in `RUN_MIGRATIONS=1` step in `entrypoint.sh` that runs `flask db upgrade` before `flask run`, mirroring the prod entrypoint. Document the env var.
+
+- **TD-16b — Dev compose has no healthcheck or restart policy (gap from TD-16)**
+  · `docker-compose.yml`
+  · TD-16 was resolved for production; the dev compose still lacks `restart` policy and healthcheck on the api (postgres has neither either). A crashed api container stays zombie until manually restarted.
+  · Mirror the prod contract in dev: `restart: unless-stopped` + api `healthcheck` (curl `/`) + optionally a postgres `healthcheck` for orchestration parity.
+
 ## Low
 
 - **TD-21 — `get_or_fail` uses deprecated Flask-SQLAlchemy 3 API**
@@ -141,9 +145,7 @@ New items must be added at the bottom of their severity block.
   · Pick one (prefer `**kwargs`) and document it.
 
 - **TD-23 — `.agents/skills/` and `.ai-resources/local/` are empty placeholders**
-  · dirs
-  · Promised in the template structure but unused.
-  · Populated in this iteration.
+  · Moved to Resolved.
 
 - **TD-24 — Missing `LICENSE`, `.editorconfig`, `CONTRIBUTING.md`**
   · repo root
@@ -166,3 +168,18 @@ New items must be added at the bottom of their severity block.
 
 - **TD-01 — `error_handler_resources` does not catch `HTTPException` inside resources**
   · Resolved by extracting `normalize_error(e)` (single source of truth) in `api/app/core/errorhandlers.py`, wrapping `BaseResource.dispatch` (covers every HTTP verb), and registering `app.errorhandler(HTTPException)` + `app.errorhandler(Exception)` so framework-level errors (404 routing, 405) also produce the `APIResponse.error` shape. `CustomApi` removed. Verified manually with `curl` (health, `NotFound` from resource, unknown route, `ValidationError`, 405). Automated test pending (see TD-15).
+
+- **TD-03 — `FLASK_DEBUG=1` hardcoded in Dockerfile**
+  · Resolved in `Dockerfile.production` (no `ENV FLASK_DEBUG`) and in the dev `Dockerfile` (the hardcoded `ENV` was removed). `api/entrypoint.sh` now reads `FLASK_DEBUG` at runtime and only adds `--debug` when explicitly set. The RCE risk from a leaked prod container is gone.
+
+- **TD-09 — Migrations are not applied on container start**
+  · Resolved in production: `api/entrypoint.prod.sh` runs `flask db upgrade` before exec'ing gunicorn. The dev-side gap is tracked separately as TD-09b.
+
+- **TD-11 — README is a folder tree**
+  · Resolved: README now covers the stack, the architecture diagram, the Resource-Repository layers, the quickstart, env vars, AI workspace rules, the new-module recipe, the production deployment section (image, entrypoint contract, compose, required `backend-network`), and pointers to `AGENTS.md` / `SCHEMA.md` / `TECH_DEBT.md`.
+
+- **TD-16 — No healthcheck or restart policy in compose**
+  · Resolved in production: `docker-compose.prod.yaml` has `healthcheck` (curl `/`) and `restart: always`. The dev-compose gap is tracked separately as TD-16b.
+
+- **TD-23 — `.agents/skills/` and `.ai-resources/local/` are empty placeholders**
+  · Resolved: `.agents/skills/` now has `commit-message`, `create-module`, `update-schema`, and a `SKILL_INDEX.md`. `.ai-resources/` is split into `issues/` (tracked, shared tech debt register) and `local/` (git-ignored scratchpad with a `.gitkeep`). The README §6 documents the contract for `local/`. The tech debt register lives in `issues/`, not `local/` (cleaner split than the original TD-23 implied).
