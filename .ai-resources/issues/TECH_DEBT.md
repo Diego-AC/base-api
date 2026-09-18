@@ -54,6 +54,7 @@ New items must be added at the bottom of their severity block.
   · `api/app/resources/versions.py:30-32`
   · Validation runs but the validated object is thrown away; the repo receives the raw dict. Loses schema-driven coercion and breaks `load_instance=True` later.
   · Assign `payload = schema.load(payload)` and pass the validated object (or a dict derived from it) to the repo.
+  · **Note (architectural decision)**: do **not** "fix" by saving `schema.load()` result and forwarding it. In Flask-Marshmallow, `load_instance=True` returns a model instance, which would move object construction from the repository to the schema — breaking the Resource-Repository pattern (R3: only repositories touch the model). Preferred direction is to use `schema.validate(payload)` (raises `ValidationError` on failure) and keep the raw dict flowing into the repo. Re-evaluate if/when TD-15 lands and we add real validation tests.
 
 - **TD-07 — `BaseRepository` mixes `ABC` with a commented `@abstractmethod`**
   · `api/app/repositories/base/mixins.py:1, 20, 28`
@@ -163,4 +164,5 @@ New items must be added at the bottom of their severity block.
 
 ## Resolved
 
-_(move items here when fixed; keep the original `TD-XX` for traceability)_
+- **TD-01 — `error_handler_resources` does not catch `HTTPException` inside resources**
+  · Resolved by extracting `normalize_error(e)` (single source of truth) in `api/app/core/errorhandlers.py`, wrapping `BaseResource.dispatch` (covers every HTTP verb), and registering `app.errorhandler(HTTPException)` + `app.errorhandler(Exception)` so framework-level errors (404 routing, 405) also produce the `APIResponse.error` shape. `CustomApi` removed. Verified manually with `curl` (health, `NotFound` from resource, unknown route, `ValidationError`, 405). Automated test pending (see TD-15).

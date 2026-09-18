@@ -6,6 +6,7 @@ from ..repositories.versions import VersionRepository
 from ..core.responses import APIResponse
 from ..core.logger import logger
 from flask import request
+from werkzeug.exceptions import NotFound
 
 
 repository = VersionRepository()
