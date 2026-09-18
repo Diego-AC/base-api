@@ -2,8 +2,7 @@ FROM python:3.12.3-alpine3.18
 
 ENV PORT=5050
 ENV PYTHONPATH=/api
-ENV FLASK_DEBUG=1
-ENV FLASK_APP=app.py
+ENV FLASK_APP=wsgi.py
 
 RUN mkdir -p /api
 WORKDIR /api

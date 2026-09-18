@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 if [ "${WAIT_DB}" = 1 ]; then
   echo "Waiting for postgres..."
 
@@ -12,6 +14,9 @@ if [ "${WAIT_DB}" = 1 ]; then
   echo "Postgre SQL started"
 fi;
 
-if [ "${FLASK_DEBUG}" = 1 ]; then
-  flask run --host=0.0.0.0 --port=${PORT} --debug
-fi;
+DEBUG_FLAG=""
+if [ "${FLASK_DEBUG}" = "1" ] || [ "${FLASK_DEBUG}" = "true" ]; then
+  DEBUG_FLAG="--debug"
+fi
+
+exec flask --app wsgi.py run --host=0.0.0.0 --port=${PORT} ${DEBUG_FLAG}
