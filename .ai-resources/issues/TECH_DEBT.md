@@ -57,9 +57,7 @@ New items must be added at the bottom of their severity block.
   · Either remove `ABC` and treat the class as a concrete helper, or properly `@abstractmethod` the methods (and fix the signature mismatch with `VersionRepository.create(self, dataJson)` vs `create(self, **kwargs)`).
 
 - **TD-08 — Postgres 12 is EOL**
-  · `db/Dockerfile:1`
-  · Postgres 12 reached end-of-life in November 2024. No security patches.
-  · Bump to `postgres:16-alpine` (or current LTS). Re-test migrations.
+  · Moved to Resolved.
 
 - **TD-09 — Migrations are not applied on container start**
   · Moved to Resolved for production. The dev-entrypoint gap stays open as a new item below (TD-09b — see "TD-09b" entry).
@@ -185,3 +183,6 @@ New items must be added at the bottom of their severity block.
 
 - **TD-02 — Database name `principal` is problematic in Postgres**
   · Resolved: the database is now created through the official Postgres image `POSTGRES_DB` env var (default `sample`), making it overridable from `.env` without touching code. The local `db/Dockerfile` and `db/create.sql` were removed in favour of the image's built-in init. `DevConfig.SQLALCHEMY_DATABASE_URI` and `.env.example` use the same env var. The chosen default `sample` is intentionally honest about being a placeholder: anyone who sees it in a `psql -l` listing in production can tell at a glance that it was never renamed. Each downstream project should set `POSTGRES_DB` to its service name (e.g. `scheduler` for `api-scheduler`).
+
+- **TD-08 — Postgres 12 is EOL**
+  · Resolved: bumped from `postgres:12.4-alpine` (frozen since the November 2024 EOL) to `postgres:16-alpine` in `docker-compose.yml`. Hard reset with `docker compose down --rmi all -v && docker compose build --no-cache`, then a full smoke test confirmed Postgres 16.14 is running, the `sample` DB is created by `POSTGRES_DB`, Alembic migrations apply cleanly to the same head, both services reach `healthy` on first boot, and a round-trip insert via psql + read via `GET /versions/last` returns the expected payload.
