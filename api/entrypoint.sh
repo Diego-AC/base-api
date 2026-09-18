@@ -14,6 +14,11 @@ if [ "${WAIT_DB}" = 1 ]; then
   echo "Postgre SQL started"
 fi;
 
+if [ "${RUN_MIGRATIONS}" = "1" ] || [ "${RUN_MIGRATIONS}" = "true" ]; then
+  echo "Running database migrations..."
+  flask db upgrade
+fi
+
 DEBUG_FLAG=""
 if [ "${FLASK_DEBUG}" = "1" ] || [ "${FLASK_DEBUG}" = "true" ]; then
   DEBUG_FLAG="--debug"
