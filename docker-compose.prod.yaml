@@ -1,0 +1,23 @@
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.production
+    image: base-api:prod
+    container_name: base-api
+    restart: always
+    env_file:
+      - ./api/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-5050}/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - backend
+
+networks:
+  backend:
+    external: true
+    name: backend-network
