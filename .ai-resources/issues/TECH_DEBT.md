@@ -41,9 +41,7 @@ New items must be added at the bottom of their severity block.
   · **Decision**: keep as an intentional placeholder. Auth strategy varies per project (Google OAuth, custom user store, mocked). Document this in `AGENTS.md` and the `conventions` skill. Provide a `AuthBackend` Protocol so real implementations can plug in.
 
 - **TD-05 — `fields.Int(nullable=False, ...)` is a no-op in Marshmallow**
-  · `api/app/schemas/versions.py:17`
-  · `nullable` is not a Marshmallow kwarg. The keyword for "accept null" is `allow_none`. This silently does nothing and misleads readers.
-  · Remove `nullable=False` or replace with `allow_none=True`.
+  · Moved to Resolved.
 
 - **TD-06 — `schema.load(payload)` result is discarded**
   · `api/app/resources/versions.py:30-32`
@@ -186,3 +184,6 @@ New items must be added at the bottom of their severity block.
 
 - **TD-08 — Postgres 12 is EOL**
   · Resolved: bumped from `postgres:12.4-alpine` (frozen since the November 2024 EOL) to `postgres:16-alpine` in `docker-compose.yml`. Hard reset with `docker compose down --rmi all -v && docker compose build --no-cache`, then a full smoke test confirmed Postgres 16.14 is running, the `sample` DB is created by `POSTGRES_DB`, Alembic migrations apply cleanly to the same head, both services reach `healthy` on first boot, and a round-trip insert via psql + read via `GET /versions/last` returns the expected payload.
+
+- **TD-05 — `fields.Int(nullable=False, ...)` is a no-op in Marshmallow**
+  · Resolved: removed the bogus `nullable=False` kwarg from `PayloadVersionSchema.active`. Marshmallow accepts `allow_none` for "may be null"; `nullable` was a silently-ignored SQLAlchemy-ism that contradicted the `allow_none=True` it was paired with. The schema is now `active = fields.Int()`, which correctly rejects `null` (`Field may not be null.`) and accepts omitted / integer values, matching what the schema claimed to do.
