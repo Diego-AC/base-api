@@ -20,7 +20,7 @@ class DevConfig(BaseConfig):
             'pgpassword',
             'postgres',
             '5432',
-            'principal',
+            os.getenv('POSTGRES_DB', 'sample'),
         ),
     )
 

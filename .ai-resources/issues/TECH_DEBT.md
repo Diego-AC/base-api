@@ -28,10 +28,7 @@ New items must be added at the bottom of their severity block.
   · Apply the wrapper to `BaseResource.dispatch` (or per HTTP method) instead of `handle_error`. Add a regression test that raises `NotFound` from a resource and asserts `APIResponse.error` shape.
 
 - **TD-02 — Database name `principal` is problematic in Postgres**
-  · `db/create.sql:1`, `api/app/config.py:16`, `docker-compose.yaml`
-  · `principal` is a confusing identifier and overlaps with reserved/role-like words in some Postgres contexts; quoting it across tools and migrations is a footgun.
-  · Rename to a neutral name (`appdb`, `app`, etc.). Update `create.sql`, `DevConfig.SQLALCHEMY_DATABASE_URI`, compose env, README and migration history.
-  · **Status**: pending. Out of scope for the docs/AI iteration.
+  · Moved to Resolved.
 
 - **TD-03 — `FLASK_DEBUG=1` hardcoded in Dockerfile**
   · Moved to Resolved. No follow-up on the production side; optional defence-in-depth assertion belongs in a new TD if/when desired.
@@ -185,3 +182,6 @@ New items must be added at the bottom of their severity block.
 
 - **TD-16b — Dev compose has no healthcheck or restart policy (gap from TD-16)**
   · Resolved: `docker-compose.yml` now mirrors the prod contract. Postgres has a `pg_isready` healthcheck; the api has a `wget --spider` healthcheck on `/` and `restart: unless-stopped`. The api waits on `postgres: condition: service_healthy` before booting. Verified end-to-end by killing PID 1 inside the api container: Docker brought it back up `healthy` in under 15 seconds.
+
+- **TD-02 — Database name `principal` is problematic in Postgres**
+  · Resolved: the database is now created through the official Postgres image `POSTGRES_DB` env var (default `sample`), making it overridable from `.env` without touching code. The local `db/Dockerfile` and `db/create.sql` were removed in favour of the image's built-in init. `DevConfig.SQLALCHEMY_DATABASE_URI` and `.env.example` use the same env var. The chosen default `sample` is intentionally honest about being a placeholder: anyone who sees it in a `psql -l` listing in production can tell at a glance that it was never renamed. Each downstream project should set `POSTGRES_DB` to its service name (e.g. `scheduler` for `api-scheduler`).
