@@ -10,6 +10,12 @@ venv/
 .venv/
 env/
 
+# Local environment files (secrets, DB credentials, per-machine config).
+# The template `.env.example` is tracked and exempted below.
+.env
+.env.*
+!.env.example
+
 # Configuración de dependencias
 pip-log.txt
 pip-delete-this-directory.txt
@@ -36,12 +42,7 @@ logs/
 docker-compose.override.yml
 
 # Configuración y credenciales
-# *.env
-# .env.local
-# .env.development
-# .env.production
-# .env.test
-# secrets.json
+# (Local .env files are matched by the .env / .env.* rules at the top of this file.)
 
 # Jupyter Notebooks
 .ipynb_checkpoints/
