@@ -111,14 +111,78 @@ A successful response looks like:
 | Variable | Default | Purpose |
 |---|---|---|
 | `WAIT_DB` | unset | When `1`, the API entrypoint waits for `postgres:5432` before booting. Set to `1` for the default `docker-compose.yaml`. |
-| `FLASK_DEBUG` | `1` in dev `Dockerfile` | Enables Flask reloader + Werkzeug debugger. **Override to `0` in any prod-like compose.** See TD-03. |
-| `FLASK_APP` | `app.py` | Flask entrypoint module. |
+| `FLASK_DEBUG` | unset | Enables Flask reloader + Werkzeug debugger. **Must stay unset (or `0`) in any prod-like compose.** See TD-03. |
+| `FLASK_APP` | `wsgi.py` (dev) / `app:create_app` (prod) | Flask entrypoint. |
+| `FLASK_CONFIG` | unset → `DevConfig` | Set to `production` to load `ProdConfig` (disables `SQLALCHEMY_ECHO`). |
 | `PORT` | `5050` | Port the API listens on. |
 | `SQLALCHEMY_DATABASE_URI` | (set in `config.py`) | Postgres connection string. Override per environment. |
 | `PYTHONPATH` | `/api` | Set in the image so `flask` finds the app package. |
+| `GUNICORN_WORKERS` | `2` | Number of gunicorn workers in prod. |
+| `GUNICORN_TIMEOUT` | `120` | Per-request timeout (seconds) in prod. |
 
 > No `.env.example` is shipped yet (TD-12). For now, copy the values above
 > into a local `.env` and keep it out of version control.
+
+## 6. Production deployment
+
+Production runs the same Flask app through **Gunicorn** behind a reverse
+proxy (nginx, ALB, Cloudflare, etc.). The contract is: the proxy joins the
+`backend-network` Docker network and forwards traffic to `base-api:5050`.
+
+### Image
+
+`api/Dockerfile.production` builds on `python:3.12-slim`, installs
+`requirements.txt`, copies the source, and runs `entrypoint.prod.sh`. It
+exposes no port to the host — only to the `backend` network.
+
+Differences vs the dev image (`api/Dockerfile`):
+
+- `FLASK_DEBUG` is not set.
+- `PYTHONUNBUFFERED=1` + `PYTHONDONTWRITEBYTECODE=1` for clean logs and no
+  on-disk bytecode.
+- No volume mount — code is baked into the image.
+- `curl` is installed (needed by the healthcheck).
+- Runs gunicorn, not `flask run`.
+
+### Entrypoint
+
+`api/entrypoint.prod.sh`:
+
+1. Sets `FLASK_CONFIG=production` and `FLASK_APP=app:create_app`.
+2. Runs `flask db upgrade` (Alembic migrations).
+3. Executes gunicorn bound to `${PORT}` with `${GUNICORN_WORKERS}` workers.
+
+### Compose
+
+`docker-compose.prod.yaml` brings up the API only — **the database is not
+included in prod**. The assumption is that Postgres lives elsewhere (managed
+service, sibling container on the same network, etc.) and is reachable by
+DNS name on the `backend` network.
+
+Required setup before `up`:
+
+```bash
+docker network create backend-network
+```
+
+Then, in `api/.env`, set `SQLALCHEMY_DATABASE_URI` to the production database
+URL. Example:
+
+```env
+PORT=5050
+FLASK_CONFIG=production
+SQLALCHEMY_DATABASE_URI=postgresql://user:pass@db-host:5432/dbname
+```
+
+Boot:
+
+```bash
+docker compose -f docker-compose.prod.yaml up --build -d
+docker compose -f docker-compose.prod.yaml logs -f api
+```
+
+The service exposes a `GET /` healthcheck (via `curl` inside the container)
+and is configured with `restart: always`.
 
 ## 6. Per-developer AI workspace
 
@@ -172,7 +236,7 @@ Full step-by-step with snippets:
 
 - AI agent operating manual: [`AGENTS.md`](AGENTS.md).
 - Database schema index: [`SCHEMA.md`](SCHEMA.md).
-- Known issues and roadmap: [`.ai-resources/local/TECH_DEBT.md`](.ai-resources/local/TECH_DEBT.md).
+- Known issues and roadmap: [`.ai-resources/issues/TECH_DEBT.md`](.ai-resources/issues/TECH_DEBT.md).
 - All skills at a glance: [`.agents/skills/SKILL_INDEX.md`](.agents/skills/SKILL_INDEX.md).
 - Writing a commit message? Use the
   [`commit-message`](.agents/skills/commit-message/SKILL.md) skill for the
