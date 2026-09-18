@@ -1,8 +1,10 @@
+import os
+
 from flask import Flask
 from flask_restful import Api
 from werkzeug.exceptions import HTTPException
 
-from .config import DevConfig
+from .config import DevConfig, ProdConfig
 from .extensions import db, migrate, ma
 from .routes import register_routes
 from .core.errorhandlers import normalize_error
@@ -18,9 +20,13 @@ def register_error_handlers(app):
     app.register_error_handler(Exception, lambda e: normalize_error(e))
 
 
-def runserver():
+def create_app():
     app = Flask(__name__)
-    app.config.from_object(DevConfig)
+
+    if os.getenv('FLASK_CONFIG') == 'production':
+        app.config.from_object(ProdConfig)
+    else:
+        app.config.from_object(DevConfig)
 
     api = CustomApi(app)
     db.init_app(app)

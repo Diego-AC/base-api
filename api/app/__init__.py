@@ -1,1 +1,1 @@
-from .setup import runserver
+from .setup import create_app

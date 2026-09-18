@@ -1,6 +1,6 @@
 try:
-    from app import runserver
-    app = runserver()
+    from app import create_app
+    app = create_app()
 except Exception as exc:
     import sys
     import traceback
