@@ -123,14 +123,10 @@ New items must be added at the bottom of their severity block.
   · Document in a comment or remove until needed.
 
 - **TD-09b — Dev entrypoint does not run migrations (gap from TD-09)**
-  · `api/entrypoint.sh`
-  · TD-09 was resolved for production; the dev entrypoint still only waits for the DB to accept connections. A fresh dev clone still requires `docker compose exec api flask db upgrade` after `docker compose up`.
-  · Add an opt-in `RUN_MIGRATIONS=1` step in `entrypoint.sh` that runs `flask db upgrade` before `flask run`, mirroring the prod entrypoint. Document the env var.
+  · Moved to Resolved.
 
 - **TD-16b — Dev compose has no healthcheck or restart policy (gap from TD-16)**
-  · `docker-compose.yml`
-  · TD-16 was resolved for production; the dev compose still lacks `restart` policy and healthcheck on the api (postgres has neither either). A crashed api container stays zombie until manually restarted.
-  · Mirror the prod contract in dev: `restart: unless-stopped` + api `healthcheck` (curl `/`) + optionally a postgres `healthcheck` for orchestration parity.
+  · Moved to Resolved.
 
 ## Low
 
@@ -183,3 +179,9 @@ New items must be added at the bottom of their severity block.
 
 - **TD-23 — `.agents/skills/` and `.ai-resources/local/` are empty placeholders**
   · Resolved: `.agents/skills/` now has `commit-message`, `create-module`, `update-schema`, and a `SKILL_INDEX.md`. `.ai-resources/` is split into `issues/` (tracked, shared tech debt register) and `local/` (git-ignored scratchpad with a `.gitkeep`). The README §6 documents the contract for `local/`. The tech debt register lives in `issues/`, not `local/` (cleaner split than the original TD-23 implied).
+
+- **TD-09b — Dev entrypoint does not run migrations (gap from TD-09)**
+  · Resolved: `api/entrypoint.sh` now runs `flask db upgrade` when `RUN_MIGRATIONS=1`, and `docker-compose.yml` sets that flag by default. A fresh `docker compose up --build` applies migrations on boot.
+
+- **TD-16b — Dev compose has no healthcheck or restart policy (gap from TD-16)**
+  · Resolved: `docker-compose.yml` now mirrors the prod contract. Postgres has a `pg_isready` healthcheck; the api has a `wget --spider` healthcheck on `/` and `restart: unless-stopped`. The api waits on `postgres: condition: service_healthy` before booting. Verified end-to-end by killing PID 1 inside the api container: Docker brought it back up `healthy` in under 15 seconds.
