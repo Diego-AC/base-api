@@ -88,6 +88,17 @@ Violations require explicit user approval.
   files that weren't reviewed.
 - **R10** — Don't propose replacing Flask-RESTful, SQLAlchemy or
   Marshmallow. The stack is fixed by template.
+- **R11** — `create_app(config=None)` accepts an injected config (class or
+  instance). Use it in tests and CLI scripts instead of monkey-patching
+  `FLASK_CONFIG`. When omitted, the factory falls back to
+  `FLASK_CONFIG` / `DevConfig`.
+- **R12** — CORS is configured via `CORS_ALLOWED_ORIGINS` in the active
+  config. Empty list (the prod default) means CORS is disabled. Never
+  use `*` in production — the loader must be a list of explicit origins.
+- **R13** — Rate limiting (`RATELIMIT_ENABLED=true`) requires a shared
+  `RATELIMIT_STORAGE_URI` (Redis) when running more than one gunicorn
+  worker. `memory://` is only safe for single-process dev. The default
+  is **off** — turn it on per project when abuse becomes a concern.
 
 ## 6. How to create a new module
 

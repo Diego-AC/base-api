@@ -110,18 +110,24 @@ A successful response looks like:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `WAIT_DB` | unset | When `1`, the API entrypoint waits for `postgres:5432` before booting. Set to `1` for the default `docker-compose.yaml`. |
-| `FLASK_DEBUG` | unset | Enables Flask reloader + Werkzeug debugger. **Must stay unset (or `0`) in any prod-like compose.** See TD-03. |
+| `WAIT_DB` | unset | When `1`, the API entrypoint waits for `postgres:5432` before booting. Set to `1` for the default `docker-compose.yml`. |
+| `FLASK_DEBUG` | unset | Enables Flask reloader + Werkzeug debugger. **Must stay unset (or `0`) in any prod-like compose.** |
 | `FLASK_APP` | `wsgi.py` (dev) / `app:create_app` (prod) | Flask entrypoint. |
-| `FLASK_CONFIG` | unset → `DevConfig` | Set to `production` to load `ProdConfig` (disables `SQLALCHEMY_ECHO`). |
+| `FLASK_CONFIG` | unset → `DevConfig` | Set to `production` to load `ProdConfig` (disables `SQLALCHEMY_ECHO`). Ignored if `create_app(config=...)` receives an explicit config. |
 | `PORT` | `5050` | Port the API listens on. |
 | `SQLALCHEMY_DATABASE_URI` | (set in `config.py`) | Postgres connection string. Override per environment. |
+| `POSTGRES_DB` | `sample` | Used by the `postgres` image's `POSTGRES_DB` env var (creates the DB on first boot) and as the fallback in `DevConfig`. |
+| `SECRET_KEY` | `''` | HS256 secret for `login_required`. **Required in production.** |
+| `CORS_ALLOWED_ORIGINS` | (dev) localhost:3000, :5173, :8080 / (prod) `[]` | Comma-separated list of allowed origins. Empty list disables CORS. Never use `*` in prod. |
+| `RATELIMIT_ENABLED` | `false` | Enables `Flask-Limiter` with the default below. |
+| `RATELIMIT_DEFAULT` | `100 per minute` | Per-IP limit when enabled. |
+| `RATELIMIT_STORAGE_URI` | `memory://` | Storage backend. Use Redis (`redis://host:6379`) in prod with multiple gunicorn workers. |
 | `PYTHONPATH` | `/api` | Set in the image so `flask` finds the app package. |
 | `GUNICORN_WORKERS` | `2` | Number of gunicorn workers in prod. |
 | `GUNICORN_TIMEOUT` | `120` | Per-request timeout (seconds) in prod. |
 
-> No `.env.example` is shipped yet (TD-12). For now, copy the values above
-> into a local `.env` and keep it out of version control.
+The full template with comments lives in [`.env.example`](.env.example).
+Copy it to `api/.env` and fill in the values; `api/.env` is git-ignored.
 
 ## 6. Production deployment
 
@@ -172,6 +178,8 @@ URL. Example:
 PORT=5050
 FLASK_CONFIG=production
 SQLALCHEMY_DATABASE_URI=postgresql://user:pass@db-host:5432/dbname
+SECRET_KEY=<32-byte-hex>
+CORS_ALLOWED_ORIGINS=https://app.example.com
 ```
 
 Boot:
@@ -181,8 +189,15 @@ docker compose -f docker-compose.prod.yaml up --build -d
 docker compose -f docker-compose.prod.yaml logs -f api
 ```
 
-The service exposes a `GET /` healthcheck (via `curl` inside the container)
-and is configured with `restart: always`.
+The service exposes two health endpoints:
+
+- `GET /` — **liveness**. Returns `200` as long as the process is alive.
+  Used by Docker's restart loop.
+- `GET /health` — **readiness**. Returns `200` only when the database
+  responds to `SELECT 1`; `503` otherwise. Used by load balancers and the
+  `docker-compose.prod.yaml` healthcheck (`curl /health`).
+
+The container is configured with `restart: always`.
 
 ## 6. Per-developer AI workspace
 

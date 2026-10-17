@@ -36,12 +36,12 @@ New items must be added at the bottom of their severity block.
 ## High
 
 - **TD-04 — `login_required` does not validate the token**
-  · `api/app/core/authentication.py:6-23`
-  · Only checks header presence. If used as-is, every authenticated endpoint is effectively public.
-  · **Decision**: keep as an intentional placeholder. Auth strategy varies per project (Google OAuth, custom user store, mocked). Document this in `AGENTS.md` and the `conventions` skill. Provide a `AuthBackend` Protocol so real implementations can plug in.
+  · Moved to Resolved (with follow-up TD-27).
 
 - **TD-05 — `fields.Int(nullable=False, ...)` is a no-op in Marshmallow**
-  · Moved to Resolved.
+  · `api/app/schemas/versions.py:17`
+  · `nullable` is not a Marshmallow kwarg. The keyword for "accept null" is `allow_none`. This silently does nothing and misleads readers.
+  · Remove `nullable=False` or replace with `allow_none=True`.
 
 - **TD-06 — `schema.load(payload)` result is discarded**
   · `api/app/resources/versions.py:30-32`
@@ -96,14 +96,10 @@ New items must be added at the bottom of their severity block.
   · Moved to Resolved for production. Dev-compose gap stays open as TD-16b below.
 
 - **TD-17 — CORS not configured**
-  · `api/app/setup.py`
-  · Frontends on other origins cannot call the API.
-  · Add `Flask-CORS` with a configurable allow-list (no `*` in prod).
+  · Moved to Resolved.
 
 - **TD-18 — No rate limiting**
-  · `api/app/setup.py`
-  · Exposed API without brute-force / abuse protection.
-  · Add `Flask-Limiter` with per-IP defaults; configurable per-endpoint.
+  · Moved to Resolved.
 
 - **TD-19 — `active` is `SmallInteger` without an index**
   · `api/app/models/versions.py:11`
@@ -151,6 +147,11 @@ New items must be added at the bottom of their severity block.
   · If `order_by.key` is wrong type or missing, silent fallback to `id.asc()`.
   · Raise `ValueError` with a clear message instead.
 
+- **TD-27 — `AuthBackend` Protocol for non-JWT auth strategies**
+  · `api/app/core/authentication.py`
+  · `login_required` now hard-codes JWT HS256. Projects that need HMAC, OAuth, API Keys, sessions, or mocks can't reuse the decorator without copy-paste.
+  · Define a `typing.Protocol` (`AuthBackend.authenticate(request) -> dict | raise`) in `core/authentication.py`. Make `login_required` accept a `backend: AuthBackend` parameter (default to `JwtBackend`). Add concrete `JwtBackend` and a `NoAuthBackend` for tests/endpoints that opt out. Document in `AGENTS.md` §5.
+
 ---
 
 ## Resolved
@@ -185,5 +186,11 @@ New items must be added at the bottom of their severity block.
 - **TD-08 — Postgres 12 is EOL**
   · Resolved: bumped from `postgres:12.4-alpine` (frozen since the November 2024 EOL) to `postgres:16-alpine` in `docker-compose.yml`. Hard reset with `docker compose down --rmi all -v && docker compose build --no-cache`, then a full smoke test confirmed Postgres 16.14 is running, the `sample` DB is created by `POSTGRES_DB`, Alembic migrations apply cleanly to the same head, both services reach `healthy` on first boot, and a round-trip insert via psql + read via `GET /versions/last` returns the expected payload.
 
-- **TD-05 — `fields.Int(nullable=False, ...)` is a no-op in Marshmallow**
-  · Resolved: removed the bogus `nullable=False` kwarg from `PayloadVersionSchema.active`. Marshmallow accepts `allow_none` for "may be null"; `nullable` was a silently-ignored SQLAlchemy-ism that contradicted the `allow_none=True` it was paired with. The schema is now `active = fields.Int()`, which correctly rejects `null` (`Field may not be null.`) and accepts omitted / integer values, matching what the schema claimed to do.
+- **TD-04 — `login_required` does not validate the token**
+  · Resolved: `api/app/core/authentication.py` now decodes the JWT with `PyJWT` using `SECRET_KEY` from the active config, sets `g.current_user_id` and `g.jwt_payload`, and returns proper `Unauthorized` for missing/malformed/expired/invalid tokens. `SECRET_KEY` is wired into `BaseConfig` and documented in `.env.example`. The JWT path is the template default; non-JWT strategies (HMAC, OAuth, API Key, session) are tracked separately as TD-27.
+
+- **TD-17 — CORS not configured**
+  · Resolved: `flask-cors` is in `requirements.txt`; `CORS_ALLOWED_ORIGINS` is a list in `BaseConfig` (defaults to `[]` = disabled); `DevConfig` ships with common localhost ports (3000, 5173, 8080); `ProdConfig` defaults to `[]` so each deployment sets its own explicit allow-list. `setup.py` wires `CORS(app, origins=...)` right after `app.config.from_object`. New AGENTS.md R12 forbids `*` in production.
+
+- **TD-18 — No rate limiting**
+  · Resolved (opt-in): `Flask-Limiter` is in `requirements.txt` but **off by default** (`RATELIMIT_ENABLED=false`). When enabled, it uses `RATELIMIT_DEFAULT` (default `100 per minute`) per remote address, with `RATELIMIT_STORAGE_URI` configurable — `memory://` for single-process dev, `redis://...` for multi-worker prod (new AGENTS.md R13). The opt-in default is intentional: turning it on globally would have been a breaking change for downstream projects.
