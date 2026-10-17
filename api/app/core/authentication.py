@@ -1,23 +1,38 @@
 from functools import wraps
-from flask import request, g
-from werkzeug.exceptions import Forbidden
+
+import jwt
+from flask import current_app, g, request
+from werkzeug.exceptions import Unauthorized
 
 
 def login_required(f):
-    """ Decorador para validar el token en métodos específicos """
+    """Decodifica JWT HS256 usando SECRET_KEY del config y expone el payload en g."""
     @wraps(f)
     def auth(*args, **kwargs):
-        token = request.headers.get("Authorization")
-        if not token:
-            raise Forbidden() 
-        """
-        Usar 'g' permite mantener objetos globalmente a lo largo de toda la petición.
-        Debe implementarse cuando se definan los modelos de autenticación.
-        Por ejemplo:
-        g.usuario = {} or SQLalchemy.User
-        """
+        if request.method == 'OPTIONS':
+            return f(*args, **kwargs)
 
-        # g.usuario = {}
-        
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            raise Unauthorized('Missing authorization header')
+
+        parts = auth_header.split()
+        if len(parts) != 2 or parts[0].lower() != 'bearer':
+            raise Unauthorized('Invalid authorization header format')
+
+        secret = current_app.config.get('SECRET_KEY')
+        if not secret:
+            raise Unauthorized('Server secret not configured')
+
+        try:
+            payload = jwt.decode(parts[1], secret, algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            raise Unauthorized('Token expired')
+        except jwt.InvalidTokenError:
+            raise Unauthorized('Invalid token')
+
+        g.current_user_id = payload.get('user_id')
+        g.jwt_payload = payload
+
         return f(*args, **kwargs)
     return auth

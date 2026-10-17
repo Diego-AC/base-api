@@ -2,6 +2,8 @@ alembic==1.13.3
 aniso8601==9.0.1
 click==8.1.7
 Flask==2.2.5
+flask-cors==6.0.2
+Flask-Limiter==3.8.0
 flask-marshmallow==1.3.0
 Flask-Migrate==4.0.7
 Flask-RESTful==0.3.10
@@ -18,6 +20,8 @@ marshmallow-enum==1.5.1
 marshmallow-sqlalchemy==1.4.1
 packaging==24.2
 psycopg2-binary==2.9.10
+PyJWT==2.8.0
+python-dotenv==1.0.1
 pytz==2024.2
 setuptools==69.2.0
 six==1.16.0

@@ -9,7 +9,7 @@ services:
     env_file:
       - ./api/.env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-5050}/"]
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-5050}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
