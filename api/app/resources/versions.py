@@ -29,7 +29,7 @@ class VersionResource(BaseResource):
         schema = PayloadVersionSchema()
 
         payload = request.get_json()
-        schema.load(payload)
+        payload = schema.load(payload)
         id = repository.create(payload)
 
         return APIResponse.success(data={"id": id}, status=201)
