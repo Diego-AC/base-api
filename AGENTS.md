@@ -99,6 +99,18 @@ Violations require explicit user approval.
   `RATELIMIT_STORAGE_URI` (Redis) when running more than one gunicorn
   worker. `memory://` is only safe for single-process dev. The default
   is **off** — turn it on per project when abuse becomes a concern.
+- **R14** — `BaseRepository` is a concrete helper, not a contract. It
+  does **not** use `ABC` or `@abstractmethod` on purpose: a reusable
+  base cannot fix the signature of `create` or `get_or_create`, because
+  every domain asks for different parameters (commit/flush, events,
+  dry-run, side-effects). The base exposes defaults for `create(**kwargs)`
+  and `get_or_create(defaults=None, **kwargs)` that work for the simple
+  case; each concrete repo **overrides them with the signature its
+  domain needs** (e.g. `VersionRepository.create(self, dataJson)` maps
+  fields explicitly because the API contract is a dict, not kwargs). Do
+  not "unify" signatures between base and child. Do not add
+  `@abstractmethod` back. The signature is the child's decision, not
+  the template's.
 
 ## 6. How to create a new module
 

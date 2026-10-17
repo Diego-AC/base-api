@@ -1,6 +1,5 @@
 from .base.mixins import BaseRepository
 from ..models import Version
-from ..extensions import db
 
 class VersionRepository(BaseRepository):
 	def __init__(self):
@@ -12,7 +11,7 @@ class VersionRepository(BaseRepository):
 	def create(self, dataJson):
 		entity = self.model(
 			description=dataJson.get("description"),
-			active=dataJson.get("active", 0),
+			active=dataJson.get("active", True),
 		)
 		entity.save()
 		return entity.id
