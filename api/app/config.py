@@ -23,6 +23,8 @@ class BaseConfig:
     RATELIMIT_DEFAULT = os.environ.get('RATELIMIT_DEFAULT', '100 per minute')
     RATELIMIT_STORAGE_URI = os.environ.get('RATELIMIT_STORAGE_URI', 'memory://')
 
+    LOGGER_NAME = 'app'
+
 
 class DevConfig(BaseConfig):
     SQLALCHEMY_TRACK_MODIFICATIONS = True

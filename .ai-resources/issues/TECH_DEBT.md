@@ -1,196 +1,84 @@
 # Technical Debt Register
 
-Living register of issues, smells and missing pieces in `base-api`.
-New items must be added at the bottom of their severity block.
+Registro vivo de problemas, malos olores y piezas faltantes en `base-api`.
+Los items nuevos se agregan al final del bloque de su severidad.
 
-## Format
+## Formato
 
 ```
-- **TD-XX — short title**
-  · file:line(s)
-  · impact
-  · suggested fix
+- **TD-XX — título corto**
+  · archivo:línea(s)
+  · impacto
+  · fix sugerido
 ```
 
-## Status legend
+## Leyenda de estado
 
-- `pending` — known, not started
-- `in-progress` — being worked on
-- `done` — resolved (move to a "Resolved" section at the bottom, do not delete)
+- `pending` — conocido, no empezado
+- `in-progress` — en curso
+- `done` — resuelto (mover a la sección "Resolved" al final, no borrar)
 
 ---
 
-## Critical
+## Critical (Crítico)
 
-- **TD-01 — `error_handler_resources` does not catch `HTTPException` inside resources**
-  · `api/app/core/errorhandlers.py:10-27`, `api/app/setup.py:9-12`
-  · `HTTPException` raised inside `get/post/...` (e.g. `NotFound` in `LastVersionResource.get`) escapes the wrapper because `CustomApi.handle_error` only does `raise err`; the inner `try/except` is never reached. Only exceptions raised *outside* a resource method are normalised.
-  · Apply the wrapper to `BaseResource.dispatch` (or per HTTP method) instead of `handle_error`. Add a regression test that raises `NotFound` from a resource and asserts `APIResponse.error` shape.
+(none at the moment)
 
-- **TD-02 — Database name `principal` is problematic in Postgres**
-  · Moved to Resolved.
+## High (Alto)
 
-- **TD-03 — `FLASK_DEBUG=1` hardcoded in Dockerfile**
-  · Moved to Resolved. No follow-up on the production side; optional defence-in-depth assertion belongs in a new TD if/when desired.
+(none at the moment)
 
-## High
+## Medium (Medio)
 
-- **TD-04 — `login_required` does not validate the token**
-  · Moved to Resolved (with follow-up TD-27).
+(vacío)
 
-- **TD-05 — `fields.Int(nullable=False, ...)` is a no-op in Marshmallow**
-  · `api/app/schemas/versions.py:17`
-  · `nullable` is not a Marshmallow kwarg. The keyword for "accept null" is `allow_none`. This silently does nothing and misleads readers.
-  · Remove `nullable=False` or replace with `allow_none=True`.
+---
 
-- **TD-06 — `schema.load(payload)` result is discarded**
-  · `api/app/resources/versions.py:30-32`
-  · Validation runs but the validated object is thrown away; the repo receives the raw dict. Loses schema-driven coercion and breaks `load_instance=True` later.
-  · Assign `payload = schema.load(payload)` and pass the validated object (or a dict derived from it) to the repo.
-  · **Note (architectural decision)**: do **not** "fix" by saving `schema.load()` result and forwarding it. In Flask-Marshmallow, `load_instance=True` returns a model instance, which would move object construction from the repository to the schema — breaking the Resource-Repository pattern (R3: only repositories touch the model). Preferred direction is to use `schema.validate(payload)` (raises `ValidationError` on failure) and keep the raw dict flowing into the repo. Re-evaluate if/when TD-15 lands and we add real validation tests.
+## Low (Bajo)
 
-- **TD-07 — `BaseRepository` mixes `ABC` with a commented `@abstractmethod`**
-  · `api/app/repositories/base/mixins.py:1, 20, 28`
-  · `ABC` is inherited but neither `get_or_create` nor `create` is enforced. The pattern pretends to be a contract that it isn't.
-  · Either remove `ABC` and treat the class as a concrete helper, or properly `@abstractmethod` the methods (and fix the signature mismatch with `VersionRepository.create(self, dataJson)` vs `create(self, **kwargs)`).
-
-- **TD-08 — Postgres 12 is EOL**
-  · Moved to Resolved.
-
-- **TD-09 — Migrations are not applied on container start**
-  · Moved to Resolved for production. The dev-entrypoint gap stays open as a new item below (TD-09b — see "TD-09b" entry).
-
-- **TD-10 — `psycopg2-binary` in requirements**
-  · `api/requirements.txt:19`
-  · Fine for dev. Not recommended for production builds (binary wheel, no system-lib isolation).
-  · Document in README; optionally split `requirements-dev.txt` / `requirements-prod.txt`.
-  · **Note**: now that `Dockerfile.production` exists, the cleanest move is to switch prod to `psycopg2` (source build, system libs) and keep `psycopg2-binary` only for dev. The README update would document the split.
-
-## Medium
-
-- **TD-11 — README is a folder tree**
-  · Moved to Resolved.
-
-- **TD-12 — No `.env.example`**
-  · repo root
-  · No reference of required env vars for a new dev.
-  · Create `.env.example` with `FLASK_DEBUG`, `WAIT_DB`, `POSTGRES_*`, etc.
-
-- **TD-13 — `.env*` lines are commented out in `.gitignore`**
-  · `.gitignore:39-44`
-  · Trivially bypassed: someone `git add .env` and it goes in.
-  · Uncomment. Add `!.env.example` so the example is still tracked.
-  · **Observed during prod setup**: creating `api/.env` for the prod smoke test left it as an untracked file that `git status` happily surfaces. Any teammate running `git add .` would commit it. Fix should be uncommented together with TD-12 so the template `.env.example` survives.
-
-- **TD-14 — No linter/formatter config**
-  · repo
-  · No enforced style; AI-generated code drifts.
-  · Add `ruff` (lint + format) + `pyproject.toml` config; optional `pre-commit`.
-
-- **TD-15 — No tests**
-  · repo
-  · No safety net for refactors or TD-01-style bugs.
-  · Add `tests/` with `pytest`; cover the error handler (TD-01) as first case.
-
-- **TD-16 — No healthcheck or restart policy in compose**
-  · Moved to Resolved for production. Dev-compose gap stays open as TD-16b below.
-
-- **TD-17 — CORS not configured**
-  · Moved to Resolved.
-
-- **TD-18 — No rate limiting**
-  · Moved to Resolved.
-
-- **TD-19 — `active` is `SmallInteger` without an index**
-  · `api/app/models/versions.py:11`
-  · Soft-delete filters do full table scans once data grows.
-  · Migrate to `db.Boolean` (cleaner semantics) and `index=True`.
-
-- **TD-20 — `_force_delete` is dead code**
+- **TD-20 — `_force_delete` parece código muerto en este proyecto, pero es parte del template**
   · `api/app/models/base/mixins.py:14-16`
-  · Never referenced. Confuses readers ("when do I use this?").
-  · Document in a comment or remove until needed.
+  · **En criollo**: este proyecto base no lo usa nunca. El `delete()` normal hace soft-delete (`active = 0`); el `_force_delete` hace un `DELETE` físico. Cualquier IA que mire la base va a decir "esto está muerto, bórralo". **No es deuda, es diseño del template**.
+  · **Por qué se queda**: este repo es una base reutilizable. Hay casos reales donde se necesita borrado físico: GDPR/derecho al olvido, purga de blobs en storage, cumplimiento regulatorio, jobs de limpieza, sistemas que sincronizan con otra fuente de verdad. Quien clone la base para uno de esos casos necesita que el mecanismo ya esté. Borrarlo es mutilar la plantilla.
+  · **Acción**: ninguno. Si te lo cruzás revisando, NO lo borres. Si en un proyecto final no lo usás, lo borrás *en ese fork*, no acá.
 
-- **TD-09b — Dev entrypoint does not run migrations (gap from TD-09)**
-  · Moved to Resolved.
 
-- **TD-16b — Dev compose has no healthcheck or restart policy (gap from TD-16)**
-  · Moved to Resolved.
+## Low (Bajo)
 
-## Low
-
-- **TD-21 — `get_or_fail` uses deprecated Flask-SQLAlchemy 3 API**
-  · `api/app/repositories/base/mixins.py:39-40`
-  · `Query.get_or_404` triggers a deprecation warning on 3.x.
-  · Replace with `db.session.get_or_404(Model, _id)`.
-
-- **TD-22 — `BaseRepository.create` signature inconsistent with subclasses**
-  · `api/app/repositories/base/mixins.py:28-34` vs `api/app/repositories/versions.py:12`
-  · Base says `**kwargs`, subclass takes `dataJson`. Cosmetic.
-  · Pick one (prefer `**kwargs`) and document it.
-
-- **TD-23 — `.agents/skills/` and `.ai-resources/local/` are empty placeholders**
-  · Moved to Resolved.
-
-- **TD-24 — Missing `LICENSE`, `.editorconfig`, `CONTRIBUTING.md`**
-  · repo root
-  · Polish. Affects how external devs onboard.
-  · Add per project policy.
-
-- **TD-25 — Logger hardcoded to a fixed name `multi_console_logger`**
-  · `api/app/core/logger.py:15`
-  · Looks copy-pasted from another project; odd name for a template.
-  · Use `__name__` or a configurable project logger name.
-
-- **TD-26 — `getattr(self.model, order_by.key)` has no type guard**
-  · `api/app/repositories/base/mixins.py:97`
-  · If `order_by.key` is wrong type or missing, silent fallback to `id.asc()`.
-  · Raise `ValueError` with a clear message instead.
-
-- **TD-27 — `AuthBackend` Protocol for non-JWT auth strategies**
-  · `api/app/core/authentication.py`
-  · `login_required` now hard-codes JWT HS256. Projects that need HMAC, OAuth, API Keys, sessions, or mocks can't reuse the decorator without copy-paste.
-  · Define a `typing.Protocol` (`AuthBackend.authenticate(request) -> dict | raise`) in `core/authentication.py`. Make `login_required` accept a `backend: AuthBackend` parameter (default to `JwtBackend`). Add concrete `JwtBackend` and a `NoAuthBackend` for tests/endpoints that opt out. Document in `AGENTS.md` §5.
+(vacío)
 
 ---
 
-## Resolved
+## Future work (Trabajo futuro)
 
-- **TD-01 — `error_handler_resources` does not catch `HTTPException` inside resources**
-  · Resolved by extracting `normalize_error(e)` (single source of truth) in `api/app/core/errorhandlers.py`, wrapping `BaseResource.dispatch` (covers every HTTP verb), and registering `app.errorhandler(HTTPException)` + `app.errorhandler(Exception)` so framework-level errors (404 routing, 405) also produce the `APIResponse.error` shape. `CustomApi` removed. Verified manually with `curl` (health, `NotFound` from resource, unknown route, `ValidationError`, 405). Automated test pending (see TD-15).
+- **TD-27 — Protocolo `AuthBackend` para autenticación que no sea JWT**
+  · `api/app/core/authentication.py`
+  · **En criollo**: hoy el decorador `@login_required` está pegado con cinta a JWT HS256. Si mañana querés soportar OAuth, API Keys, sesiones, o mocks para tests, tenés que duplicar el decorador. Esto no es un problema hoy (JWT funciona), pero la idea es dejar escrita la dirección de cómo se va a resolver cuando llegue el momento.
+  · **Dirección propuesta (no implementar hasta que decidas rediseñar auth)**: definir un `typing.Protocol` (`AuthBackend.authenticate(request) -> dict | raise`). El decorador `login_required` aceptaría un `backend: AuthBackend` como parámetro (default a `JwtBackend`). Habría implementaciones concretas: `JwtBackend` (la actual) y `NoAuthBackend` (para endpoints públicos o tests).
+  · **Por qué está acá y no en el backlog**: JWT funciona, nada en el código actual lo necesita todavía. Esto está para que la decisión de diseño no se pierda, no como tarea pendiente.
 
-- **TD-03 — `FLASK_DEBUG=1` hardcoded in Dockerfile**
-  · Resolved in `Dockerfile.production` (no `ENV FLASK_DEBUG`) and in the dev `Dockerfile` (the hardcoded `ENV` was removed). `api/entrypoint.sh` now reads `FLASK_DEBUG` at runtime and only adds `--debug` when explicitly set. The RCE risk from a leaked prod container is gone.
+---
 
-- **TD-09 — Migrations are not applied on container start**
-  · Resolved in production: `api/entrypoint.prod.sh` runs `flask db upgrade` before exec'ing gunicorn. The dev-side gap is tracked separately as TD-09b.
+## Resolved (Resueltos) — resumen express
 
-- **TD-11 — README is a folder tree**
-  · Resolved: README now covers the stack, the architecture diagram, the Resource-Repository layers, the quickstart, env vars, AI workspace rules, the new-module recipe, the production deployment section (image, entrypoint contract, compose, required `backend-network`), and pointers to `AGENTS.md` / `SCHEMA.md` / `TECH_DEBT.md`.
-
-- **TD-16 — No healthcheck or restart policy in compose**
-  · Resolved in production: `docker-compose.prod.yaml` has `healthcheck` (curl `/`) and `restart: always`. The dev-compose gap is tracked separately as TD-16b.
-
-- **TD-23 — `.agents/skills/` and `.ai-resources/local/` are empty placeholders**
-  · Resolved: `.agents/skills/` now has `commit-message`, `create-module`, `update-schema`, and a `SKILL_INDEX.md`. `.ai-resources/` is split into `issues/` (tracked, shared tech debt register) and `local/` (git-ignored scratchpad with a `.gitkeep`). The README §6 documents the contract for `local/`. The tech debt register lives in `issues/`, not `local/` (cleaner split than the original TD-23 implied).
-
-- **TD-09b — Dev entrypoint does not run migrations (gap from TD-09)**
-  · Resolved: `api/entrypoint.sh` now runs `flask db upgrade` when `RUN_MIGRATIONS=1`, and `docker-compose.yml` sets that flag by default. A fresh `docker compose up --build` applies migrations on boot.
-
-- **TD-16b — Dev compose has no healthcheck or restart policy (gap from TD-16)**
-  · Resolved: `docker-compose.yml` now mirrors the prod contract. Postgres has a `pg_isready` healthcheck; the api has a `wget --spider` healthcheck on `/` and `restart: unless-stopped`. The api waits on `postgres: condition: service_healthy` before booting. Verified end-to-end by killing PID 1 inside the api container: Docker brought it back up `healthy` in under 15 seconds.
-
-- **TD-02 — Database name `principal` is problematic in Postgres**
-  · Resolved: the database is now created through the official Postgres image `POSTGRES_DB` env var (default `sample`), making it overridable from `.env` without touching code. The local `db/Dockerfile` and `db/create.sql` were removed in favour of the image's built-in init. `DevConfig.SQLALCHEMY_DATABASE_URI` and `.env.example` use the same env var. The chosen default `sample` is intentionally honest about being a placeholder: anyone who sees it in a `psql -l` listing in production can tell at a glance that it was never renamed. Each downstream project should set `POSTGRES_DB` to its service name (e.g. `scheduler` for `api-scheduler`).
-
-- **TD-08 — Postgres 12 is EOL**
-  · Resolved: bumped from `postgres:12.4-alpine` (frozen since the November 2024 EOL) to `postgres:16-alpine` in `docker-compose.yml`. Hard reset with `docker compose down --rmi all -v && docker compose build --no-cache`, then a full smoke test confirmed Postgres 16.14 is running, the `sample` DB is created by `POSTGRES_DB`, Alembic migrations apply cleanly to the same head, both services reach `healthy` on first boot, and a round-trip insert via psql + read via `GET /versions/last` returns the expected payload.
-
-- **TD-04 — `login_required` does not validate the token**
-  · Resolved: `api/app/core/authentication.py` now decodes the JWT with `PyJWT` using `SECRET_KEY` from the active config, sets `g.current_user_id` and `g.jwt_payload`, and returns proper `Unauthorized` for missing/malformed/expired/invalid tokens. `SECRET_KEY` is wired into `BaseConfig` and documented in `.env.example`. The JWT path is the template default; non-JWT strategies (HMAC, OAuth, API Key, session) are tracked separately as TD-27.
-
-- **TD-17 — CORS not configured**
-  · Resolved: `flask-cors` is in `requirements.txt`; `CORS_ALLOWED_ORIGINS` is a list in `BaseConfig` (defaults to `[]` = disabled); `DevConfig` ships with common localhost ports (3000, 5173, 8080); `ProdConfig` defaults to `[]` so each deployment sets its own explicit allow-list. `setup.py` wires `CORS(app, origins=...)` right after `app.config.from_object`. New AGENTS.md R12 forbids `*` in production.
-
-- **TD-18 — No rate limiting**
-  · Resolved (opt-in): `Flask-Limiter` is in `requirements.txt` but **off by default** (`RATELIMIT_ENABLED=false`). When enabled, it uses `RATELIMIT_DEFAULT` (default `100 per minute`) per remote address, with `RATELIMIT_STORAGE_URI` configurable — `memory://` for single-process dev, `redis://...` for multi-worker prod (new AGENTS.md R13). The opt-in default is intentional: turning it on globally would have been a breaking change for downstream projects.
+- **TD-01** — Los errores HTTP dentro de los recursos se escapaban. Resuelto: `normalize_error` + wrapper en `BaseResource.dispatch` + handlers globales.
+- **TD-02** — El nombre de DB "principal" daba problemas en Postgres. Resuelto: ahora se llama "sample" y se puede cambiar vía env var.
+- **TD-03** — `FLASK_DEBUG=1` hardcodeado en Dockerfile era riesgo RCE en prod. Resuelto: se lee de env al arranque.
+- **TD-04** — `login_required` no validaba el token (decorador decorativo). Resuelto: ahora decodifica JWT con PyJWT y `SECRET_KEY`.
+- **TD-05** — `fields.Int(nullable=False, ...)` era un kwarg falso. Resuelto: borrado, ahora es `fields.Int()`.
+- **TD-06** — `schema.load(payload)` se descartaba. Resuelto: ahora `payload = schema.load(payload)` y se pasa el resultado al repo. **El fix NO fue `schema.validate(payload)` como sugería la nota original** — al implementarlo descubrimos que `validate()` no respeta `required=True` (devuelve OK con `{}`), por lo que payloads inválidos seguían llegando al repo e insertando basura en la DB. La solución correcta es capturar el resultado de `load()`, que sí valida `required` y tipos. Como `PayloadVersionSchema` es un `Schema` plano (no hereda de `BaseAutoSchema`), `load_instance` no está activo, así que `load()` devuelve un dict validado y R3 se sigue respetando (el modelo lo construye el repo, no el schema). Bug colateral destapado: el POST con `{}` antes insertaba un registro con `description=null` y reventaba con `NotNullViolation` 500; ahora corta en 400 con el detalle del campo faltante.
+- **TD-19** — `active` era `SMALLINT` sin índice. Resuelto: ahora es `db.Boolean` con `index=True` y default `True` a nivel Python (un nuevo registro nace activo, no inactivo — es la semántica esperada). Migración `f3ea58733afb` convierte la columna existente usando `(active <> 0)` (Postgres necesita coerción explícita `SMALLINT → BOOLEAN`) y crea el índice `ix_versions_active`. `VersionRepository.create` actualizado para usar `True` como fallback. `SCHEMA.md` actualizado en el mismo cambio.
+- **TD-07** — `BaseRepository` mezclaba `ABC` con `@abstractmethod` y no cumplía el contrato que prometía. Resuelto: `ABC` y los `@abstractmethod`/`pass` stubs fuera; la base ahora es helper concreto, expone defaults para `create(**kwargs)` y `get_or_create(defaults=None, **kwargs)` que sirven para el caso simple, y documenta en `AGENTS.md` (R14) que la firma concreta de `create`/`get_or_create` la define cada repo hijo. `VersionRepository.create(self, dataJson)` queda intacto porque su firma es la que su dominio necesita.
+- **TD-21** — `get_or_fail` usaba `self.query.get_or_404` (API vieja de Flask-SQLAlchemy 2, deprecated en 3). Resuelto: ahora arma el query en el repositorio y usa `first_or_404()` sobre él: `self.query.filter_by(id=_id).first_or_404()`. Esto respeta R3 (el query se construye en el repo, no se delega al shortcut `db.get_or_404(...)` que vive fuera del repositorio y rompe el patrón Resource-Repository).
+- **TD-22** — Las firmas de `create` entre base e hijos no coincidían. NO se unificaron: esa es justamente la decisión correcta en una base reutilizable. Resuelto mediante TD-07: la base deja de pretender fijar la firma, y AGENTS.md R14 deja escrito que la firma la define el repo concreto. `VersionRepository.create(self, dataJson)` mantiene su firma porque es lo que su dominio pide.
+- **TD-25** — Logger hardcodeado al nombre `multi_console_logger`. Resuelto: el nombre ahora viene de `BaseConfig.LOGGER_NAME` (default `"app"`) y `setup.py` re-registra el logger con ese nombre después de cargar la config (`_bind_logger_name`). **No se lee de env** por decisión explícita: cada fork sobreescribe subclaseando `BaseConfig` e inyectando via `create_app(config=...)`. Documentado en `README.md` §5 "Config overrides (not env)". Bug colateral del handler de ERROR arreglado de paso: el formatter reventaba con `KeyError('file_path')` cuando un `logger.error(...)` se llamaba sin `extra={'file_path': ..., 'line_number': ...}`; ahora un `Filter` rellena los campos faltantes desde `record.pathname` / `record.lineno` para que cualquier call site no rompa.
+- **TD-08** — Postgres 12 estaba EOL desde noviembre 2024. Resuelto: bumpeado a 16-alpine.
+- **TD-09** — Las migraciones no se aplicaban al arrancar el contenedor en prod. Resuelto: `entrypoint.prod.sh` corre `flask db upgrade` antes de gunicorn.
+- **TD-09b** — El entrypoint de dev tampoco corría migraciones. Resuelto: `docker-compose.yml` setea `RUN_MIGRATIONS=1`.
+- **TD-11** — El README era un árbol de carpetas. Resuelto: ahora documenta stack, arquitectura, quickstart, env vars, deploy de prod.
+- **TD-12** — No había `.env.example`. Resuelto: existe en la raíz con todas las variables documentadas.
+- **TD-13** — Las líneas de `.env*` estaban comentadas en `.gitignore`. Resuelto: ahora se ignoran `.env` y `.env.*`, excepto `.env.example`.
+- **TD-16** — Faltaban healthcheck y restart policy en compose de prod. Resuelto: `docker-compose.prod.yaml` los tiene.
+- **TD-16b** — Faltaban también en dev. Resuelto: dev compose ahora espeja el contrato de prod.
+- **TD-17** — CORS no estaba configurado. Resuelto: `flask-cors` instalado, `CORS_ALLOWED_ORIGINS` en config, default a `[]` en prod.
+- **TD-18** — No había rate limiting. Resuelto: `Flask-Limiter` instalado, **opt-in** (off por default, no rompemos proyectos downstream).

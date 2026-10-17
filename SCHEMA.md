@@ -23,18 +23,18 @@ Append rows here as the project grows. Do not renumber.
 
 ### `versions`
 
-Mixins: `TransactionalMixin`. Soft delete via `active = 0`.
+Mixins: `TransactionalMixin`. Soft delete via `active = false`.
 
 | Column | Type | Nullable | Default | Notes |
 |---|---|---|---|---|
 | `id` | `INTEGER` | NO | — | PK, autoincrement. |
 | `description` | `VARCHAR` | NO | — | Free-form. No length declared. |
-| `active` | `SMALLINT` | NO | `0` ⚠️ | Soft-delete flag. Default `0` looks suspicious; fix per project (TD-19). |
+| `active` | `BOOLEAN` | NO | `true` (Python) | Soft-delete flag. Indexed (`ix_versions_active`). Default applied at the SQLAlchemy layer. |
 | `created_at` | `DATETIME` | YES | `now()` | |
 | `updated_at` | `DATETIME` | YES | `now()` on update | |
 
 Relations: none.
-Indexes: PK only.
+Indexes: PK + `ix_versions_active` on `(active,)`.
 
 ---
 
@@ -45,3 +45,4 @@ Tool: Flask-Migrate (`flask db ...`). Directory: `api/migrations/versions/`.
 | Revision | Description | Created |
 |---|---|---|
 | `9e681dd9c27f` | initial: create `versions` | 2024-10-18 |
+| `f3ea58733afb` | convert `versions.active` from `SMALLINT` to `BOOLEAN` (using `active <> 0`) and add `ix_versions_active` | 2026-10-17 |

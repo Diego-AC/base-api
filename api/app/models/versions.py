@@ -8,7 +8,7 @@ class Version(db.Model, TransactionalMixin):
 
     # Base columns >>
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    active = db.Column(db.SmallInteger(), nullable=False, default=0)
+    active = db.Column(db.Boolean(), nullable=False, default=True, index=True)
     created_at = db.Column(db.DateTime, default=func.now())
     updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now()) 
     # Custom columns >>
