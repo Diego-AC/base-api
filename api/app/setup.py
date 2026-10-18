@@ -8,6 +8,7 @@ from werkzeug.exceptions import HTTPException
 
 from .config import DevConfig, ProdConfig
 from .extensions import db, migrate, ma
+from . import auth  # noqa: F401 — registers backends at import time
 from .routes import register_routes
 from .core.errorhandlers import normalize_error
 from .core.logger import logger as _base_logger

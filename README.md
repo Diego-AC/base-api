@@ -77,6 +77,31 @@ HTTP request
 For the step-by-step recipe to add a new module, see
 [`.agents/skills/create-module/SKILL.md`](.agents/skills/create-module/SKILL.md).
 
+### Authentication (`app/core/auth/`)
+
+Authentication is pluggable via an `AuthBackend` Protocol. The
+template ships with two concrete backends (`JwtBackend` and
+`HashBackend`); the fork registers its own in `app/auth.py` and uses
+the `@auth_required(['name1', 'name2'])` decorator on resources.
+
+- The factory is `auth_required(backends: list[str], mode: str = "any")`.
+  It is a factory, not a decorator: the resources import the function
+  and decorate the method.
+- `[]` is an error — public endpoints omit the decorator.
+- A name that is not registered raises `RegistryError` at decoration
+  time, so the app does not boot. No silent fallback.
+- `JwtBackend` validates the signature and the `exp` claim. It does
+  **not** interpret the payload — what you put in the JWT is what
+  you get in `g.identity`. The fork decides what to emit.
+- `HashBackend` validates a `Authorization: Hash <key>:<ts>:<sig>`
+  header using `FRONTEND_SECRET` and a time window. The fork injects
+  the `resolve(api_key_str) -> identity_dict` function; the backend
+  does not know what is behind the api key.
+
+For the full contract, the table of available backends, and the fork
+authoring guide, see
+[`api/app/core/auth/README.md`](api/app/core/auth/README.md).
+
 ## 4. Quickstart
 
 Requirements: Docker + Docker Compose.
@@ -117,7 +142,9 @@ A successful response looks like:
 | `PORT` | `5050` | Port the API listens on. |
 | `SQLALCHEMY_DATABASE_URI` | (set in `config.py`) | Postgres connection string. Override per environment. |
 | `POSTGRES_DB` | `sample` | Used by the `postgres` image's `POSTGRES_DB` env var (creates the DB on first boot) and as the fallback in `DevConfig`. |
-| `SECRET_KEY` | `''` | HS256 secret for `login_required`. **Required in production.** |
+| `SECRET_KEY` | `''` | HS256 secret for `JwtBackend`. **Required in production** if the fork registers the `'jwt'` backend. |
+| `FRONTEND_SECRET` | `''` | HMAC secret for `HashBackend`. Required if the fork registers the `'hash'` backend. |
+| `HASH_VALIDITY_SECONDS` | `10` | Time window (seconds) accepted by `HashBackend` for a hash signature. |
 | `CORS_ALLOWED_ORIGINS` | (dev) localhost:3000, :5173, :8080 / (prod) `[]` | Comma-separated list of allowed origins. Empty list disables CORS. Never use `*` in prod. |
 | `RATELIMIT_ENABLED` | `false` | Enables `Flask-Limiter` with the default below. |
 | `RATELIMIT_DEFAULT` | `100 per minute` | Per-IP limit when enabled. |

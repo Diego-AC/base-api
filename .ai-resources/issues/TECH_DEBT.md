@@ -42,20 +42,18 @@ Los items nuevos se agregan al final del bloque de su severidad.
   · **Por qué se queda**: este repo es una base reutilizable. Hay casos reales donde se necesita borrado físico: GDPR/derecho al olvido, purga de blobs en storage, cumplimiento regulatorio, jobs de limpieza, sistemas que sincronizan con otra fuente de verdad. Quien clone la base para uno de esos casos necesita que el mecanismo ya esté. Borrarlo es mutilar la plantilla.
   · **Acción**: ninguno. Si te lo cruzás revisando, NO lo borres. Si en un proyecto final no lo usás, lo borrás *en ese fork*, no acá.
 
-
-## Low (Bajo)
-
-(vacío)
+- **TD-27 (en revisión) — nuevo paquete `app/core/auth/`**
+  · `api/app/core/auth/`, `api/app/auth.py`, `api/app/setup.py`, `AGENTS.md` R15, `README.md` §3, `.env.example`
+  · **En criollo**: `@login_required` (hardcodeado a JWT HS256) se reemplaza por `@auth_required(['name1', 'name2'], mode='any')` con un `AuthBackend` Protocol, un registry (`register_backend` / `get_backend` / `clear_registry`) y dos backends concretos: `JwtBackend` (firma + `exp` + `nbf`, **no interpreta el payload**) y `HashBackend` (api_key + ts + hmac, `resolve` inyectable). El fork registra sus backends en `app/auth.py` (al import time) y los recursos usan el decorador con strings, sin importar instancias. Reglas fail-fast: `@auth_required([])` → `ValueError`; nombre no registrado → `RegistryError` (la app no levanta). El viejo `authentication.py` se eliminó.
+  · **Estado**: **QA — pendiente de revisión manual.** El autor corrió smoke tests E2E (público 200, sin auth 401, JWT correcto 201, JWT con secret incorrecto 401, backend no registrado → app no levanta) y todo pasa. La implementación es significativa (cambio de patrón + breaking change en la firma del decorador) y amerita una segunda mirada antes de mover este item a Resolved. **No usar en producción hasta que un humano lo valide.**
 
 ---
 
 ## Future work (Trabajo futuro)
 
-- **TD-27 — Protocolo `AuthBackend` para autenticación que no sea JWT**
-  · `api/app/core/authentication.py`
-  · **En criollo**: hoy el decorador `@login_required` está pegado con cinta a JWT HS256. Si mañana querés soportar OAuth, API Keys, sesiones, o mocks para tests, tenés que duplicar el decorador. Esto no es un problema hoy (JWT funciona), pero la idea es dejar escrita la dirección de cómo se va a resolver cuando llegue el momento.
-  · **Dirección propuesta (no implementar hasta que decidas rediseñar auth)**: definir un `typing.Protocol` (`AuthBackend.authenticate(request) -> dict | raise`). El decorador `login_required` aceptaría un `backend: AuthBackend` como parámetro (default a `JwtBackend`). Habría implementaciones concretas: `JwtBackend` (la actual) y `NoAuthBackend` (para endpoints públicos o tests).
-  · **Por qué está acá y no en el backlog**: JWT funciona, nada en el código actual lo necesita todavía. Esto está para que la decisión de diseño no se pierda, no como tarea pendiente.
+(vacío)
+
+
 
 ---
 

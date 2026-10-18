@@ -28,11 +28,13 @@ the architecture diagram and layer responsibilities.
 base-api/
 ├── api/
 │   ├── app/
-│   │   ├── core/           # cross-cutting (response, errors, logger, auth)
+│   │   ├── core/           # cross-cutting (response, errors, logger, auth/)
+│   │   ├── core/auth/      # AuthBackend Protocol, registry, factory, backends
 │   │   ├── models/         # SQLAlchemy models (+ base mixins)
 │   │   ├── schemas/        # Marshmallow schemas (+ base)
 │   │   ├── repositories/   # DB access (+ base mixins)
 │   │   ├── resources/      # Flask-RESTful resources (+ base)
+│   │   ├── auth.py         # backend registration (template default)
 │   │   ├── routes.py       # route registration
 │   │   ├── config.py       # config classes
 │   │   ├── extensions.py   # db, migrate, ma singletons
@@ -111,6 +113,24 @@ Violations require explicit user approval.
   not "unify" signatures between base and child. Do not add
   `@abstractmethod` back. The signature is the child's decision, not
   the template's.
+- **R15** — Authentication goes through the `AuthBackend` Protocol in
+  `app/core/auth/`. The template ships with two concrete backends
+  (`JwtBackend` and `HashBackend`) and a `register_backend(name, factory)`
+  registry. Resources use `@auth_required(['backend_name', ...])` and
+  never import backend instances. Rules:
+  - `[]` is a programming error (`ValueError` at decoration time): if
+    the endpoint is public, **omit** the decorator.
+  - A name that is not registered raises `RegistryError` at decoration
+    time, so the app does not boot. There is no silent fallback.
+  - The fork registers its own backends in `app/auth.py`. `setup.py`
+    imports that module and calls `register_template_backends()` before
+    `register_routes(api)`. If the fork keeps the template's `app/auth.py`
+    as-is, the default `'jwt'` and `'hash'` names work out of the box.
+  - Do not write a custom `@xxx_required` decorator. Implement an
+    `AuthBackend` and register it.
+  - `JwtBackend` does **not** interpret the JWT payload. A token with
+    `payload = {}` or `payload = {"exp": ...}` is valid. The fork
+    decides what to put in the token.
 
 ## 6. How to create a new module
 

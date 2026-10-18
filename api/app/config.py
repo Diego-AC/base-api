@@ -10,6 +10,8 @@ class BaseConfig:
     )
 
     SECRET_KEY = os.environ.get('SECRET_KEY', '')
+    FRONTEND_SECRET = os.environ.get('FRONTEND_SECRET', '')
+    HASH_VALIDITY_SECONDS = int(os.environ.get('HASH_VALIDITY_SECONDS', '10'))
 
     CORS_ALLOWED_ORIGINS = [
         o.strip()

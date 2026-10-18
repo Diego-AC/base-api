@@ -1,10 +1,9 @@
 from ..schemas.versions import VersionSerializer, PayloadVersionSchema
 
 from .base.custom_resource import BaseResource
-from ..core.authentication import login_required
+from ..core.auth import auth_required
 from ..repositories.versions import VersionRepository
 from ..core.responses import APIResponse
-from ..core.logger import logger
 from flask import request
 from werkzeug.exceptions import NotFound
 
@@ -21,10 +20,10 @@ class LastVersionResource(BaseResource):
         data = serializer.dump(last_version)
 
         return APIResponse.success(data=data)
-    
-    
+
+
 class VersionResource(BaseResource):
-    @login_required
+    @auth_required(['jwt'])
     def post(self):
         schema = PayloadVersionSchema()
 
